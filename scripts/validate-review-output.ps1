@@ -34,7 +34,7 @@ for ($index = $expectedHeaders.Count; $index -lt $lines.Count; $index++) {
 if ($findingsIndex -lt 0) { throw 'Review output must contain a ## Findings section.' }
 
 $findings = ($lines[($findingsIndex + 1)..($lines.Count - 1)] -join "`n").Trim()
-if ($findings -match '(?m)^NO_FINDINGS: YES\s*$') {
+if ($findings -eq 'NO_FINDINGS: YES') {
     Write-Output 'VALID: review output contract (no findings)'
     return
 }

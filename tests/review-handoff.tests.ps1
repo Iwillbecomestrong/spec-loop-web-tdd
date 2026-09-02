@@ -134,6 +134,25 @@ try {
     ) -join "`n") -Encoding utf8
     Invoke-Validator $noFindingsResponse
 
+    $contradictoryNoFindingsResponse = Join-Path $tempRoot 'contradictory-no-findings-response.md'
+    Set-Content -LiteralPath $contradictoryNoFindingsResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+        ''
+        '## Findings'
+        'NO_FINDINGS: YES'
+        ''
+        '- Severity: MAJOR'
+        '- File: broken.ps1'
+        '- Location: line 10'
+        '- Evidence: test evidence'
+        '- Reason: test reason'
+        '- Recommended Fix: test fix'
+    ) -join "`n") -Encoding utf8
+    Invoke-ValidatorExpectFailure $contradictoryNoFindingsResponse
+
     $missingHeaderResponse = Join-Path $tempRoot 'missing-header-response.md'
     Set-Content -LiteralPath $missingHeaderResponse -Value '## Findings`nNO_FINDINGS: YES' -Encoding utf8
     Invoke-ValidatorExpectFailure $missingHeaderResponse
