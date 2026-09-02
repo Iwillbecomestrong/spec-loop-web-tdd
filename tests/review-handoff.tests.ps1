@@ -55,6 +55,10 @@ try {
     $fullText = Get-Content -Raw $fullOutput
     Assert-True ($fullText.Contains('REVIEW_SCOPE: COMPLETE')) 'full diffs must declare complete review scope.'
     Assert-True ($fullText.Contains('tracked.txt') -and $fullText.Contains('second.txt')) 'full diffs must include every changed file.'
+    Assert-True ($fullText.Contains('REVIEW OUTPUT CONTRACT')) 'review handoffs must declare an output contract.'
+    Assert-True ($fullText.Contains('REPOSITORY_VERIFIED: YES/NO')) 'review handoffs must require repository attestation.'
+    Assert-True ($fullText.Contains('- Severity: BLOCKER | MAJOR | MINOR | INFO')) 'review handoffs must define stable finding severity values.'
+    Assert-True ($fullText.Contains('NO_FINDINGS: YES')) 'review handoffs must define the no-findings sentinel.'
 
     Invoke-HandoffExpectFailure @{
         SpecPath = 'docs/specs/test.md'

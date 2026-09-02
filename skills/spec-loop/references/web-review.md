@@ -48,3 +48,16 @@ Web Review 原始输出
 - 没有 Git diff 且没有 before/after snapshot 时，handoff 生成直接失败。
 
 因此，过滤 diff 只是传输限制下的显式降级协议，不得被当作完整代码审查结果。
+
+## 五、Review 输出协议
+
+Review handoff 要求 Web GPT 的响应以四行 attestation 开始：
+
+```text
+REPOSITORY_VERIFIED: YES/NO
+BASE_COMMIT_VERIFIED: YES/NO
+TARGET_COMMIT_VERIFIED: YES/NO
+SPEC_VERIFIED: YES/NO
+```
+
+随后必须有 `## Findings`。每个发现使用 `Severity`、`File`、`Location`、`Evidence`、`Reason`、`Recommended Fix` 字段；没有发现时使用固定标记 `NO_FINDINGS: YES`。这样原始响应才能被后续归档和自动收敛流程可靠判断。

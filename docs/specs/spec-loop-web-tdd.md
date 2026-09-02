@@ -36,6 +36,7 @@ The current `gpt-web` CLI sends text through stdin; arbitrary local Markdown, te
 - Plan and review handoff scripts include explicit output contracts and repository mode information.
 - Review handoff generation enumerates the complete changed-file list, rejects incomplete `DiffPaths` unless `-AllowPartialDiff` is explicit, and labels/list omissions in an allowed scoped handoff.
 - Review handoff generation fails when neither Git commit evidence nor before/after snapshots are supplied.
+- Review handoffs require a machine-checkable attestation header and stable findings/no-findings output contract.
 - Missing SPEC blocks plan handoff generation.
 - The Web GPT runner saves stdout separately from stderr.
 - Regression tests cover complete, rejected partial, explicitly allowed partial, and evidence-free review handoffs.

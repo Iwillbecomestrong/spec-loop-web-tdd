@@ -48,6 +48,25 @@ Review the implementation against the confirmed SPEC and the exact change eviden
 Check SPEC compliance, plan consistency, local README contracts, regressions, edge cases, test adequacy, documentation sync, and scope creep.
 Return findings with severity, file/location, evidence, and a concrete fix recommendation. Distinguish blockers from minors.
 The response will be captured verbatim to docs/work/review-<target>.md.
+
+REVIEW OUTPUT CONTRACT
+The response MUST begin with these attestation lines, using only YES or NO:
+REPOSITORY_VERIFIED: YES/NO
+BASE_COMMIT_VERIFIED: YES/NO
+TARGET_COMMIT_VERIFIED: YES/NO
+SPEC_VERIFIED: YES/NO
+
+Then provide:
+## Findings
+For each finding, include exactly these labeled fields:
+- Severity: BLOCKER | MAJOR | MINOR | INFO
+- File:
+- Location:
+- Evidence:
+- Reason:
+- Recommended Fix:
+
+If no findings exist, include the fixed sentinel `NO_FINDINGS: YES` under `## Findings`.
 '@
 Add-Section 'Repository mode' $modeJson
 Add-Section 'User request' $UserRequest
