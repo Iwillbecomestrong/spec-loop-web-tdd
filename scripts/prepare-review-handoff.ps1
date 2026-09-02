@@ -11,7 +11,9 @@ param(
     [string]$OutputPath = 'docs/work/review-prompt.txt',
     [string[]]$ContextFiles = @(),
     [string[]]$DiffPaths = @(),
-    [switch]$AllowPartialDiff
+    [switch]$AllowPartialDiff,
+    [ValidateRange(1, 104857600)]
+    [int]$MaxSnapshotBytes = 1048576
 )
 
 $resolvedProject = (Resolve-Path -LiteralPath $ProjectPath -ErrorAction Stop).Path
@@ -23,7 +25,13 @@ $sections = [System.Collections.Generic.List[string]]::new()
 $seen = @{}
 $git = Get-Command git -ErrorAction SilentlyContinue
 $hasGitEvidence = [bool]($git -and $BaseCommit -and $TargetCommit)
-$hasSnapshotEvidence = [bool]($BeforeSnapshot -or $AfterSnapshot)
+$hasBeforeSnapshot = [bool]$BeforeSnapshot
+$hasAfterSnapshot = [bool]$AfterSnapshot
+$hasSnapshotEvidence = [bool]($hasBeforeSnapshot -and $hasAfterSnapshot)
+
+if ($hasBeforeSnapshot -xor $hasAfterSnapshot) {
+    throw 'No-Git review requires both BeforeSnapshot and AfterSnapshot for comparison.'
+}
 
 if (-not $hasGitEvidence -and -not $hasSnapshotEvidence) {
     throw 'Review evidence is required: provide BaseCommit and TargetCommit, or a before/after snapshot.'
@@ -41,6 +49,35 @@ function Add-FileSection([string]$Path, [string]$Title = $null) {
     $relative = [IO.Path]::GetRelativePath($resolvedProject, $full)
     $heading = if ($Title) { $Title } else { "File: $relative" }
     Add-Section $heading "~~~text`n$(Get-Content -Raw -LiteralPath $full)`n~~~"
+}
+
+function Get-SnapshotFiles([string]$RelativePath) {
+    $root = Join-Path $resolvedProject $RelativePath
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+        throw "Snapshot directory not found: $root"
+    }
+    $files = @{}
+    foreach ($file in (Get-ChildItem -File -Recurse -LiteralPath $root | Sort-Object FullName)) {
+        $relative = [IO.Path]::GetRelativePath($root, $file.FullName).Replace('\', '/')
+        $files[$relative] = $file
+    }
+    return $files
+}
+
+function Read-SnapshotFile($File) {
+    if ($File.Length -gt $MaxSnapshotBytes) {
+        return [pscustomobject]@{ kind = 'OMITTED (size limit)'; text = $null; bytes = $File.Length }
+    }
+    $bytes = [IO.File]::ReadAllBytes($File.FullName)
+    if ($bytes -contains [byte]0) {
+        return [pscustomobject]@{ kind = 'BINARY (content omitted)'; text = $null; bytes = $bytes.Length }
+    }
+    try {
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+    } catch {
+        return [pscustomobject]@{ kind = 'BINARY (content omitted)'; text = $null; bytes = $bytes.Length }
+    }
+    return [pscustomobject]@{ kind = 'TEXT'; text = $text; bytes = $bytes.Length }
 }
 
 Add-Section 'Review instruction' @'
@@ -116,9 +153,39 @@ if ($hasGitEvidence) {
 }
 
 if ($BeforeSnapshot -or $AfterSnapshot) {
-    Add-Section 'No-Git snapshot protocol' 'Compare the corresponding files in the before and after snapshots. Treat only files included in the snapshots or context list as in scope.'
-    if ($BeforeSnapshot) { Add-Section 'Before snapshot manifest' ((Get-ChildItem -File -Recurse -LiteralPath (Join-Path $resolvedProject $BeforeSnapshot) | ForEach-Object { [IO.Path]::GetRelativePath($resolvedProject, $_.FullName) }) -join "`n") }
-    if ($AfterSnapshot) { Add-Section 'After snapshot manifest' ((Get-ChildItem -File -Recurse -LiteralPath (Join-Path $resolvedProject $AfterSnapshot) | ForEach-Object { [IO.Path]::GetRelativePath($resolvedProject, $_.FullName) }) -join "`n") }
+    Add-Section 'No-Git snapshot protocol' "Compare paired before and after snapshots. The handoff embeds bounded text contents, marks added/deleted/unchanged/modified files, and explicitly marks binary or size-limited content omissions. Snapshot content is limited to $MaxSnapshotBytes bytes per file and in total. Treat only files included in the snapshots or context list as in scope."
+    $beforeFiles = Get-SnapshotFiles $BeforeSnapshot
+    $afterFiles = Get-SnapshotFiles $AfterSnapshot
+    $snapshotPaths = @($beforeFiles.Keys + $afterFiles.Keys | Sort-Object -Unique)
+    $manifestLines = [System.Collections.Generic.List[string]]::new()
+    $contentSections = [System.Collections.Generic.List[string]]::new()
+    $contentBytesUsed = 0
+    foreach ($relative in $snapshotPaths) {
+        $beforeFile = $beforeFiles[$relative]
+        $afterFile = $afterFiles[$relative]
+        $beforeRecord = if ($beforeFile) { Read-SnapshotFile $beforeFile } else { [pscustomobject]@{ kind = 'ABSENT'; text = $null; bytes = 0 } }
+        $afterRecord = if ($afterFile) { Read-SnapshotFile $afterFile } else { [pscustomobject]@{ kind = 'ABSENT'; text = $null; bytes = 0 } }
+        $status = if (-not $beforeFile) { 'ADDED' } elseif (-not $afterFile) { 'DELETED' } elseif ($beforeRecord.text -eq $afterRecord.text -and $beforeRecord.kind -eq 'TEXT' -and $afterRecord.kind -eq 'TEXT') { 'UNCHANGED' } else { 'MODIFIED' }
+        $omission = @(@($beforeRecord.kind, $afterRecord.kind) | Where-Object { $_ -in @('BINARY (content omitted)', 'OMITTED (size limit)') })
+        $neededBytes = if ($beforeRecord.kind -eq 'TEXT') { $beforeRecord.bytes } else { 0 }
+        $neededBytes += if ($afterRecord.kind -eq 'TEXT') { $afterRecord.bytes } else { 0 }
+        if ($omission.Count -eq 0 -and $contentBytesUsed + $neededBytes -gt $MaxSnapshotBytes) {
+            $omission = @('OMITTED (size limit)')
+        }
+        if ($omission.Count -gt 0) {
+            $status = "$status; $($omission -join ', ')"
+            $beforeText = if ($beforeFile) { "($($beforeRecord.kind))" } else { '(absent)' }
+            $afterText = if ($afterFile) { "($($afterRecord.kind))" } else { '(absent)' }
+        } else {
+            $contentBytesUsed += $neededBytes
+            $beforeText = if ($beforeFile) { $beforeRecord.text } else { '(absent)' }
+            $afterText = if ($afterFile) { $afterRecord.text } else { '(absent)' }
+        }
+        $manifestLines.Add("$status`t$relative`tbefore_bytes=$($beforeRecord.bytes)`tafter_bytes=$($afterRecord.bytes)")
+        $contentSections.Add("### $status - $relative`nBefore:`n~~~text`n$beforeText`n~~~`nAfter:`n~~~text`n$afterText`n~~~")
+    }
+    Add-Section 'Before/after snapshot manifest' ("SNAPSHOT_MAX_BYTES: $MaxSnapshotBytes`nCONTENT_BYTES_INCLUDED: $contentBytesUsed`n" + ($manifestLines -join "`n"))
+    Add-Section 'Before/after snapshot contents' ($contentSections -join "`n`n")
 }
 
 foreach ($path in $ContextFiles) { Add-FileSection (Join-Path $resolvedProject $path) }

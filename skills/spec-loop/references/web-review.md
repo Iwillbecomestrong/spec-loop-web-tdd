@@ -61,3 +61,5 @@ SPEC_VERIFIED: YES/NO
 ```
 
 随后必须有 `## Findings`。每个发现使用 `Severity`、`File`、`Location`、`Evidence`、`Reason`、`Recommended Fix` 字段；没有发现时使用固定标记 `NO_FINDINGS: YES`。这样原始响应才能被后续归档和自动收敛流程可靠判断。
+
+`NO_FINDINGS: YES` 只能独占整个 Findings 区域；它不能与任何 finding 同时出现，也不能出现在 finding 前后作为附加行。

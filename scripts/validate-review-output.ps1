@@ -38,6 +38,9 @@ if ($findings -eq 'NO_FINDINGS: YES') {
     Write-Output 'VALID: review output contract (no findings)'
     return
 }
+if ($findings -match '(?m)^NO_FINDINGS: YES\s*$') {
+    throw 'NO_FINDINGS: YES cannot be combined with findings.'
+}
 
 $allowedSeverities = @('BLOCKER', 'MAJOR', 'MINOR', 'INFO')
 

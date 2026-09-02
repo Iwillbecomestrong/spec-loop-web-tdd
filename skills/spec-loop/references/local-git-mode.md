@@ -15,3 +15,5 @@ Get-Content docs/work/plan-prompt.txt | node E:\ai-toolkit\skills\AgentChat\wrap
 ```powershell
 Get-Content docs/work/review-prompt.txt | node E:\ai-toolkit\skills\AgentChat\wrappers\gpt-web\cli.js ask -e high
 ```
+
+无 Git 时必须同时提供 before/after snapshot。handoff 会嵌入有界文本内容，并对新增、删除、二进制和超出大小限制的文件标记状态；只有 manifest 不足以支持审查。

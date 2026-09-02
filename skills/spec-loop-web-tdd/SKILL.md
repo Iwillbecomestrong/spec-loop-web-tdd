@@ -64,6 +64,8 @@ Select the Web GPT route:
 - Local Git without a usable remote: send the self-contained prompt through the bundled `gpt-web` skill.
 - No Git: send the self-contained prompt through `gpt-web`; include a bounded file manifest and relevant file contents.
 
+For the No-Git route, require both `BeforeSnapshot` and `AfterSnapshot`. The review handoff embeds bounded text contents, pairs files by relative path, and explicitly marks added, deleted, binary, and size-limited files; a manifest alone is not review evidence.
+
 The `gpt-web` CLI receives text through stdin. It does not attach arbitrary local Markdown, text, or PDF files to the ChatGPT conversation. Never claim that a file was uploaded when only its text was piped.
 
 Save the raw Web GPT result to `docs/work/plan-raw.md`. Locally review it against the SPEC, local READMEs, current code, and HISTORY before writing `docs/plans/<feature>.md` or updating the project's PLAN.
