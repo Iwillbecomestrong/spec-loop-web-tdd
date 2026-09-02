@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $pluginRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $handoffScript = Join-Path $pluginRoot 'scripts/prepare-review-handoff.ps1'
+$validatorScript = Join-Path $pluginRoot 'scripts/validate-review-output.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('spec-loop-review-handoff-' + [guid]::NewGuid().ToString('N'))
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -22,6 +23,20 @@ function Invoke-HandoffExpectFailure([hashtable]$Arguments) {
         return
     }
     throw 'ASSERTION FAILED: expected review handoff generation to fail.'
+}
+
+function Invoke-Validator([string]$ResponsePath) {
+    & pwsh -NoProfile -ExecutionPolicy Bypass -File $validatorScript -ResponsePath $ResponsePath 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Review output validator exited with code $LASTEXITCODE." }
+}
+
+function Invoke-ValidatorExpectFailure([string]$ResponsePath) {
+    try {
+        Invoke-Validator $ResponsePath
+    } catch {
+        return
+    }
+    throw "ASSERTION FAILED: expected review output validation to fail for $ResponsePath."
 }
 
 New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
@@ -88,6 +103,65 @@ try {
         ProjectPath = $tempRoot
         OutputPath = (Join-Path $tempRoot 'no-evidence-review.txt')
     }
+
+    $validResponse = Join-Path $tempRoot 'valid-response.md'
+    Set-Content -LiteralPath $validResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+        ''
+        '## Findings'
+        '- Severity: MINOR'
+        '- File: tracked.txt'
+        '- Location: line 1'
+        '- Evidence: test evidence'
+        '- Reason: test reason'
+        '- Recommended Fix: test fix'
+    ) -join "`n") -Encoding utf8
+    Invoke-Validator $validResponse
+
+    $noFindingsResponse = Join-Path $tempRoot 'no-findings-response.md'
+    Set-Content -LiteralPath $noFindingsResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+        ''
+        '## Findings'
+        'NO_FINDINGS: YES'
+    ) -join "`n") -Encoding utf8
+    Invoke-Validator $noFindingsResponse
+
+    $missingHeaderResponse = Join-Path $tempRoot 'missing-header-response.md'
+    Set-Content -LiteralPath $missingHeaderResponse -Value '## Findings`nNO_FINDINGS: YES' -Encoding utf8
+    Invoke-ValidatorExpectFailure $missingHeaderResponse
+
+    $invalidSeverityResponse = Join-Path $tempRoot 'invalid-severity-response.md'
+    Set-Content -LiteralPath $invalidSeverityResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+        ''
+        '## Findings'
+        '- Severity: URGENT'
+        '- File: tracked.txt'
+        '- Location: line 1'
+        '- Evidence: test evidence'
+        '- Reason: test reason'
+        '- Recommended Fix: test fix'
+    ) -join "`n") -Encoding utf8
+    Invoke-ValidatorExpectFailure $invalidSeverityResponse
+
+    $missingFindingsResponse = Join-Path $tempRoot 'missing-findings-response.md'
+    Set-Content -LiteralPath $missingFindingsResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+    ) -join "`n") -Encoding utf8
+    Invoke-ValidatorExpectFailure $missingFindingsResponse
 
     Write-Output 'PASS: review handoff scope tests'
 } finally {

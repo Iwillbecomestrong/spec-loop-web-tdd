@@ -92,6 +92,8 @@ After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. 
 - With an accessible GitHub snapshot, use `gpt-repo review --base <BASE_SHA> --commit <TARGET_SHA> --spec <SPEC>`.
 - Otherwise, send the self-contained review prompt to `gpt-web`.
 
+For the `gpt-web` route, run `scripts/run-web-gpt.ps1` with `-ValidateReviewContract` so malformed attestation or findings output is rejected before archival. The GitHub `gpt-repo` route performs repository/commit/SPEC attestation in its own runner; preserve and inspect its raw response artifact as well.
+
 Save the raw response to `docs/work/review-<target>.md`. The review must cover SPEC compliance, PLAN consistency, Local README compliance, regression and edge cases, test adequacy, documentation sync, and history-worthy findings.
 
 If the Web GPT Review finds a real defect, dispatch a subagent to fix it with a regression test, then re-run a scoped Web GPT review. After the second failed review, perform root-cause analysis. Three consecutive failures trigger STOP and escalation; do not retry blindly.

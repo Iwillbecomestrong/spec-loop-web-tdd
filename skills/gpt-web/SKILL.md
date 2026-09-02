@@ -44,3 +44,5 @@ Get-Content prompt.txt | node $env:AGENTCHAT_ROOT\wrappers\gpt-web\cli.js ask
 ## 输出契约
 - **stdout**：仅输出 ChatGPT 的最终回答文本。
 - **stderr**：输出运行状态与调试日志。
+
+Review 请求可附加 `-ValidateReviewContract`。该选项会在保存最终响应前校验四行 attestation、`## Findings`、合法 severity，以及 `NO_FINDINGS: YES` 无发现标记；校验失败时命令失败且不归档响应。
