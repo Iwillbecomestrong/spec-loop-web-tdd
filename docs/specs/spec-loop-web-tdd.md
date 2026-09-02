@@ -38,6 +38,7 @@ The current `gpt-web` CLI sends text through stdin; arbitrary local Markdown, te
 - Review handoff generation fails when neither Git commit evidence nor before/after snapshots are supplied.
 - Review handoffs require a machine-checkable attestation header and stable findings/no-findings output contract.
 - The `gpt-web` runner can validate that contract before archiving a review response.
+- The validator checks every finding block independently, and contract-check temporary files use unique names.
 - Missing SPEC blocks plan handoff generation.
 - The Web GPT runner saves stdout separately from stderr.
 - Regression tests cover complete, rejected partial, explicitly allowed partial, and evidence-free review handoffs.

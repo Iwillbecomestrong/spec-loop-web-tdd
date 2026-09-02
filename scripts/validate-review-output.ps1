@@ -39,18 +39,30 @@ if ($findings -match '(?m)^NO_FINDINGS: YES\s*$') {
     return
 }
 
-$severityMatches = [regex]::Matches($findings, '(?m)^- Severity: (.+?)\s*$')
-if ($severityMatches.Count -eq 0) { throw 'Findings must contain a Severity field or NO_FINDINGS: YES.' }
 $allowedSeverities = @('BLOCKER', 'MAJOR', 'MINOR', 'INFO')
-foreach ($match in $severityMatches) {
-    if ($allowedSeverities -notcontains $match.Groups[1].Value.Trim()) {
-        throw "Invalid finding severity: $($match.Groups[1].Value.Trim())."
-    }
+
+$severityMatches = [regex]::Matches($findings, '(?m)^- Severity: ')
+if ($severityMatches.Count -eq 0) { throw 'Findings must contain a Severity field or NO_FINDINGS: YES.' }
+if ($findings.Substring(0, $severityMatches[0].Index).Trim()) {
+    throw 'Each finding must begin with a Severity field.'
 }
 
-foreach ($field in @('File', 'Location', 'Evidence', 'Reason', 'Recommended Fix')) {
-    if ($findings -notmatch "(?m)^- $([regex]::Escape($field)): .+") {
-        throw "Findings must contain a non-empty $field field."
+for ($index = 0; $index -lt $severityMatches.Count; $index++) {
+    $start = $severityMatches[$index].Index
+    $end = if ($index + 1 -lt $severityMatches.Count) { $severityMatches[$index + 1].Index } else { $findings.Length }
+    $block = $findings.Substring($start, $end - $start)
+    if ($block -notmatch '(?m)^- Severity: (.+?)\s*$') {
+        throw 'Each finding must begin with a Severity field.'
+    }
+    $severity = $Matches[1].Trim()
+    if ($allowedSeverities -notcontains $severity) {
+        throw "Invalid finding severity: $severity."
+    }
+
+    foreach ($field in @('File', 'Location', 'Evidence', 'Reason', 'Recommended Fix')) {
+        if ($block -notmatch "(?m)^- $([regex]::Escape($field)): .+") {
+            throw "Each finding must contain a non-empty $field field."
+        }
     }
 }
 

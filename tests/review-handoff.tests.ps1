@@ -5,6 +5,7 @@ $ErrorActionPreference = 'Stop'
 $pluginRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $handoffScript = Join-Path $pluginRoot 'scripts/prepare-review-handoff.ps1'
 $validatorScript = Join-Path $pluginRoot 'scripts/validate-review-output.ps1'
+$runnerScript = Join-Path $pluginRoot 'scripts/run-web-gpt.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('spec-loop-review-handoff-' + [guid]::NewGuid().ToString('N'))
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -26,8 +27,8 @@ function Invoke-HandoffExpectFailure([hashtable]$Arguments) {
 }
 
 function Invoke-Validator([string]$ResponsePath) {
-    & pwsh -NoProfile -ExecutionPolicy Bypass -File $validatorScript -ResponsePath $ResponsePath 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Review output validator exited with code $LASTEXITCODE." }
+    $output = @(& pwsh -NoProfile -ExecutionPolicy Bypass -File $validatorScript -ResponsePath $ResponsePath 2>&1)
+    if ($LASTEXITCODE -ne 0) { throw "Review output validator exited with code ${LASTEXITCODE}: $($output -join ' ')" }
 }
 
 function Invoke-ValidatorExpectFailure([string]$ResponsePath) {
@@ -162,6 +163,28 @@ try {
         'SPEC_VERIFIED: YES'
     ) -join "`n") -Encoding utf8
     Invoke-ValidatorExpectFailure $missingFindingsResponse
+
+    $splitFindingResponse = Join-Path $tempRoot 'split-finding-response.md'
+    Set-Content -LiteralPath $splitFindingResponse -Value (@(
+        'REPOSITORY_VERIFIED: YES'
+        'BASE_COMMIT_VERIFIED: YES'
+        'TARGET_COMMIT_VERIFIED: YES'
+        'SPEC_VERIFIED: YES'
+        ''
+        '## Findings'
+        '- Severity: BLOCKER'
+        '- File: first.cs'
+        ''
+        '- Severity: MAJOR'
+        '- Location: line 10'
+        '- Evidence: test evidence'
+        '- Reason: test reason'
+        '- Recommended Fix: test fix'
+    ) -join "`n") -Encoding utf8
+    Invoke-ValidatorExpectFailure $splitFindingResponse
+
+    $runnerText = Get-Content -Raw -LiteralPath $runnerScript
+    Assert-True ($runnerText.Contains('[guid]::NewGuid()')) 'contract-check files must use unique names.'
 
     Write-Output 'PASS: review handoff scope tests'
 } finally {

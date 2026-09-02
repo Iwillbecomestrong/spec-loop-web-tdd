@@ -28,7 +28,7 @@ if ($exitCode -ne 0) { throw "gpt-web failed with exit code $exitCode. See $stde
 if (-not $stdout) { throw "gpt-web returned no response. See $stderrPath" }
 
 if ($ValidateReviewContract) {
-    $candidatePath = "$resolvedOutput.contract-check.tmp"
+    $candidatePath = Join-Path (Split-Path -Parent $resolvedOutput) (([guid]::NewGuid().ToString()) + '.contract-check.tmp')
     try {
         Set-Content -LiteralPath $candidatePath -Value $stdout -Encoding utf8
         & (Join-Path $PSScriptRoot 'validate-review-output.ps1') -ResponsePath $candidatePath | Out-Null
