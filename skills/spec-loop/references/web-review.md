@@ -37,3 +37,14 @@ Web Review 原始输出
         ↓
 若全部通过 ➔ 提取有价值结论 ➔ 准备进入 Knowledge Sync
 ```
+
+## 四、Diff 范围门禁
+
+`scripts/prepare-review-handoff.ps1` 默认审查 `BASE_COMMIT..TARGET_COMMIT` 的完整 diff，并在 handoff 中列出全部变更文件。使用 `-DiffPaths` 时，脚本会将路径过滤结果与完整变更清单比较：
+
+- 若过滤路径遗漏任何变更文件，默认直接失败；
+- 只有显式传入 `-AllowPartialDiff` 才允许生成部分 handoff；
+- 部分 handoff 必须标记 `REVIEW_SCOPE: SCOPED`，列出 `OMITTED_CHANGED_FILES`，并声明这些文件未被审查；
+- 没有 Git diff 且没有 before/after snapshot 时，handoff 生成直接失败。
+
+因此，过滤 diff 只是传输限制下的显式降级协议，不得被当作完整代码审查结果。

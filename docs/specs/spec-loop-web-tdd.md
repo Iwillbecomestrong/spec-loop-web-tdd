@@ -34,7 +34,10 @@ The current `gpt-web` CLI sends text through stdin; arbitrary local Markdown, te
 - The plugin manifest validates.
 - The main skill enforces `SPEC_READY -> WEB_PLAN_ALLOWED`.
 - Plan and review handoff scripts include explicit output contracts and repository mode information.
+- Review handoff generation enumerates the complete changed-file list, rejects incomplete `DiffPaths` unless `-AllowPartialDiff` is explicit, and labels/list omissions in an allowed scoped handoff.
+- Review handoff generation fails when neither Git commit evidence nor before/after snapshots are supplied.
 - Missing SPEC blocks plan handoff generation.
 - The Web GPT runner saves stdout separately from stderr.
+- Regression tests cover complete, rejected partial, explicitly allowed partial, and evidence-free review handoffs.
 - The package contains the Spec-Loop, GPT Repo, GPT Web, subagent TDD, and test-driven development skills.
 - No credentials or runtime dependency directories are included.

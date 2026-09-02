@@ -87,7 +87,7 @@ Run a task-scoped review after each task. A task review is useful but does not r
 
 ## 4. Web GPT Review and convergence
 
-After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. Run `scripts/prepare-review-handoff.ps1` to create `docs/work/review-prompt.txt`. On Windows, use `-DiffPaths` to keep the prompt below the command-line transport limit when the repository contains many bundled files; include the integration files and list the bundled upstream skill files separately.
+After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. Run `scripts/prepare-review-handoff.ps1` to create `docs/work/review-prompt.txt`. The default handoff contains the complete commit diff. If `-DiffPaths` is used, the script compares the filtered paths with the complete changed-file list and rejects omitted files unless `-AllowPartialDiff` is explicitly supplied. An allowed partial handoff declares `REVIEW_SCOPE: SCOPED` and lists every omitted changed file; it is never presented as a complete review. On Windows, use this explicit partial mode only when transport limits require it, and include the integration files plus the omitted bundled skill files in the review scope note.
 
 - With an accessible GitHub snapshot, use `gpt-repo review --base <BASE_SHA> --commit <TARGET_SHA> --spec <SPEC>`.
 - Otherwise, send the self-contained review prompt to `gpt-web`.

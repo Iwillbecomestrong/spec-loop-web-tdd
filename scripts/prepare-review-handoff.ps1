@@ -10,7 +10,8 @@ param(
     [string]$AfterSnapshot,
     [string]$OutputPath = 'docs/work/review-prompt.txt',
     [string[]]$ContextFiles = @(),
-    [string[]]$DiffPaths = @()
+    [string[]]$DiffPaths = @(),
+    [switch]$AllowPartialDiff
 )
 
 $resolvedProject = (Resolve-Path -LiteralPath $ProjectPath -ErrorAction Stop).Path
@@ -20,6 +21,13 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutput) |
 $modeJson = & (Join-Path $PSScriptRoot 'detect-repository-mode.ps1') -ProjectPath $resolvedProject
 $sections = [System.Collections.Generic.List[string]]::new()
 $seen = @{}
+$git = Get-Command git -ErrorAction SilentlyContinue
+$hasGitEvidence = [bool]($git -and $BaseCommit -and $TargetCommit)
+$hasSnapshotEvidence = [bool]($BeforeSnapshot -or $AfterSnapshot)
+
+if (-not $hasGitEvidence -and -not $hasSnapshotEvidence) {
+    throw 'Review evidence is required: provide BaseCommit and TargetCommit, or a before/after snapshot.'
+}
 
 function Add-Section([string]$Title, [string]$Body) {
     if ($Body) { $sections.Add("## $Title`n`n$($Body.Trim())") }
@@ -45,12 +53,45 @@ Add-Section 'Repository mode' $modeJson
 Add-Section 'User request' $UserRequest
 Add-FileSection $resolvedSpec 'Confirmed SPEC'
 
-$git = Get-Command git -ErrorAction SilentlyContinue
-if ($git -and $BaseCommit -and $TargetCommit) {
+if ($hasGitEvidence) {
+    $allChangedArgs = @('diff', '--name-only', '--no-ext-diff', $BaseCommit, $TargetCommit)
+    $allChangedFiles = @((& $git.Source -C $resolvedProject @allChangedArgs 2>$null) | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0) { throw "Unable to enumerate changed files for $BaseCommit..$TargetCommit." }
+
+    $includedChangedFiles = $allChangedFiles
+    if ($DiffPaths.Count -gt 0) {
+        $scopedArgs = @('diff', '--name-only', '--no-ext-diff', $BaseCommit, $TargetCommit, '--') + $DiffPaths
+        $includedChangedFiles = @((& $git.Source -C $resolvedProject @scopedArgs 2>$null) | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ })
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to enumerate the requested review paths.' }
+    }
+
+    $includedSet = @{}
+    foreach ($path in $includedChangedFiles) { $includedSet[$path.Replace('\', '/')] = $true }
+    $omittedChangedFiles = @($allChangedFiles | Where-Object { -not $includedSet.ContainsKey($_.Replace('\', '/')) })
+    if ($omittedChangedFiles.Count -gt 0 -and -not $AllowPartialDiff) {
+        throw "DiffPaths omits changed files: $($omittedChangedFiles -join ', '). Re-run without DiffPaths or explicitly pass -AllowPartialDiff."
+    }
+
+    $reviewScope = if ($omittedChangedFiles.Count -gt 0) { 'SCOPED' } else { 'COMPLETE' }
+    $scopeLines = @(
+        "REVIEW_SCOPE: $reviewScope"
+        "ALL_CHANGED_FILES:"
+        $(if ($allChangedFiles.Count) { $allChangedFiles -join "`n" } else { '(none)' })
+        "INCLUDED_CHANGED_FILES:"
+        $(if ($includedChangedFiles.Count) { $includedChangedFiles -join "`n" } else { '(none)' })
+        "OMITTED_CHANGED_FILES:"
+        $(if ($omittedChangedFiles.Count) { $omittedChangedFiles -join "`n" } else { '(none)' })
+    )
+    if ($reviewScope -eq 'SCOPED') {
+        $scopeLines += 'WARNING: This handoff is an explicitly allowed partial review; omitted changed files are outside the supplied diff and must not be treated as reviewed.'
+    }
+    Add-Section 'Review scope' ($scopeLines -join "`n")
+
     $diffArgs = @('diff', '--no-ext-diff', '--unified=80', $BaseCommit, $TargetCommit)
     if ($DiffPaths.Count -gt 0) { $diffArgs += '--'; $diffArgs += $DiffPaths }
     $diff = (& $git.Source -C $resolvedProject @diffArgs 2>$null) -join "`n"
-    if ($LASTEXITCODE -eq 0 -and $diff) {
+    if ($LASTEXITCODE -ne 0) { throw "Unable to read diff for $BaseCommit..$TargetCommit." }
+    if ($allChangedFiles.Count -gt 0) {
         Add-Section "Change diff ($BaseCommit..$TargetCommit)" "~~~diff`n$diff`n~~~"
     }
 }
