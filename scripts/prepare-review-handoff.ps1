@@ -9,7 +9,8 @@ param(
     [string]$BeforeSnapshot,
     [string]$AfterSnapshot,
     [string]$OutputPath = 'docs/work/review-prompt.txt',
-    [string[]]$ContextFiles = @()
+    [string[]]$ContextFiles = @(),
+    [string[]]$DiffPaths = @()
 )
 
 $resolvedProject = (Resolve-Path -LiteralPath $ProjectPath -ErrorAction Stop).Path
@@ -46,7 +47,9 @@ Add-FileSection $resolvedSpec 'Confirmed SPEC'
 
 $git = Get-Command git -ErrorAction SilentlyContinue
 if ($git -and $BaseCommit -and $TargetCommit) {
-    $diff = (& $git.Source -C $resolvedProject diff --no-ext-diff --unified=80 $BaseCommit $TargetCommit 2>$null) -join "`n"
+    $diffArgs = @('diff', '--no-ext-diff', '--unified=80', $BaseCommit, $TargetCommit)
+    if ($DiffPaths.Count -gt 0) { $diffArgs += '--'; $diffArgs += $DiffPaths }
+    $diff = (& $git.Source -C $resolvedProject @diffArgs 2>$null) -join "`n"
     if ($LASTEXITCODE -eq 0 -and $diff) {
         Add-Section "Change diff ($BaseCommit..$TargetCommit)" "~~~diff`n$diff`n~~~"
     }
