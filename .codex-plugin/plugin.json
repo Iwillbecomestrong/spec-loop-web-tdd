@@ -1,0 +1,22 @@
+{
+  "name": "spec-loop-web-tdd",
+  "version": "0.1.0",
+  "description": "A gated Spec-Loop workflow that clarifies requirements, creates or validates SPEC, asks ChatGPT Web for the implementation plan and review, and executes TDD through subagents.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Spec Loop Web Tdd",
+    "shortDescription": "SPEC-first Web GPT planning and review with subagent TDD.",
+    "longDescription": "Runs a SPEC-first development loop: clarify requirements, create or update the SPEC, send a self-contained handoff to ChatGPT Web for planning, execute isolated TDD tasks through subagents, and perform snapshot-bound Web GPT review.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": ["Write", "Review"],
+    "defaultPrompt": [
+      "Run the SPEC-first Web GPT TDD workflow for this task.",
+      "Create or update the SPEC, then ask ChatGPT Web for an implementation plan.",
+      "Review this change with the correct repository mode and Web GPT."
+    ]
+  }
+}
