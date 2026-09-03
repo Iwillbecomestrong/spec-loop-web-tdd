@@ -24,7 +24,17 @@ If the host does not expose plugin installation, copy the contents of `skills/` 
 <workspace>/.agents/skills/
 ```
 
-or the Antigravity global skills directory. Keep the plugin `scripts/` directory available in the same checkout when the workflow needs handoff generation or output validation.
+or the Antigravity global skills directory. This installs the instructions only. Handoff generation and output validation require the complete plugin package, because the skill-relative launchers resolve the package's `scripts/` directory; keep that checkout available or install the full plugin instead.
+
+When running a script stage, invoke the launcher located next to the main skill:
+
+```powershell
+<installed-skill-root>\scripts\prepare-plan-handoff.ps1
+<installed-skill-root>\scripts\prepare-review-handoff.ps1
+<installed-skill-root>\scripts\run-web-gpt.ps1
+```
+
+These launchers resolve the package root from their own location and do not depend on the project's current working directory.
 
 ## Runtime prerequisites
 

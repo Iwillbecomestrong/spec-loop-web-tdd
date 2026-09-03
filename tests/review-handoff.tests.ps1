@@ -6,6 +6,10 @@ $pluginRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $handoffScript = Join-Path $pluginRoot 'scripts/prepare-review-handoff.ps1'
 $validatorScript = Join-Path $pluginRoot 'scripts/validate-review-output.ps1'
 $runnerScript = Join-Path $pluginRoot 'scripts/run-web-gpt.ps1'
+$skillRoot = Join-Path $pluginRoot 'skills/spec-loop-web-tdd'
+$planLauncherScript = Join-Path $skillRoot 'scripts/prepare-plan-handoff.ps1'
+$reviewLauncherScript = Join-Path $skillRoot 'scripts/prepare-review-handoff.ps1'
+$webLauncherScript = Join-Path $skillRoot 'scripts/run-web-gpt.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('spec-loop-review-handoff-' + [guid]::NewGuid().ToString('N'))
 $noGitRoot = Join-Path ([IO.Path]::GetTempPath()) ('spec-loop-review-no-git-' + [guid]::NewGuid().ToString('N'))
 
@@ -224,6 +228,12 @@ try {
     $runnerText = Get-Content -Raw -LiteralPath $runnerScript
     Assert-True ($runnerText.Contains('[guid]::NewGuid()')) 'contract-check files must use unique names.'
     $skillText = Get-Content -Raw -LiteralPath (Join-Path $pluginRoot 'skills/spec-loop-web-tdd/SKILL.md')
+    Assert-True (Test-Path -LiteralPath $planLauncherScript -PathType Leaf) 'the main skill must ship a plan launcher.'
+    Assert-True (Test-Path -LiteralPath $reviewLauncherScript -PathType Leaf) 'the main skill must ship a review launcher.'
+    Assert-True (Test-Path -LiteralPath $webLauncherScript -PathType Leaf) 'the main skill must ship a Web GPT launcher.'
+    $launcherText = Get-Content -Raw -LiteralPath $reviewLauncherScript
+    Assert-True ($launcherText.Contains('..\..\..')) 'skill launchers must resolve the package root from their own location.'
+    Assert-True ($skillText.Contains('do not resolve `scripts/prepare-review-handoff.ps1` relative to the project working directory')) 'the main skill must document stable launcher resolution.'
     $reviewSectionIndex = $skillText.IndexOf('## 4. Web GPT Review and convergence')
     $noGitRequirementIndex = $skillText.IndexOf('For the No-Git route')
     $verificationSectionIndex = $skillText.IndexOf('## 5. Verification and handoff')
@@ -279,6 +289,16 @@ try {
     }
     $boundedText = Get-Content -Raw $boundedOutput
     Assert-True ($boundedText.Contains('OMITTED') -and $boundedText.Contains('size limit')) 'No-Git handoffs must mark size-limited omissions.'
+
+    $launcherOutput = Join-Path $tempRoot 'launcher-review.txt'
+    Push-Location ([IO.Path]::GetTempPath())
+    try {
+        & pwsh -NoProfile -ExecutionPolicy Bypass -File $reviewLauncherScript -SpecPath 'docs/specs/test.md' -ProjectPath $tempRoot -BaseCommit $base -TargetCommit $target -OutputPath $launcherOutput 2>$null | Out-Null
+        Assert-True ($LASTEXITCODE -eq 0) 'skill-relative review launcher must work outside the plugin and project directories.'
+        Assert-True ((Get-Content -Raw -LiteralPath $launcherOutput).Contains('REVIEW_SCOPE: COMPLETE')) 'skill-relative review launcher must invoke the canonical handoff script.'
+    } finally {
+        Pop-Location
+    }
 
     Write-Output 'PASS: review handoff scope tests'
 } finally {

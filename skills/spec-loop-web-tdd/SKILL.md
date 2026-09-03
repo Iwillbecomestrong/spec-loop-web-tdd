@@ -87,14 +87,14 @@ Run a task-scoped review after each task. A task review is useful but does not r
 
 ## 4. Web GPT Review and convergence
 
-After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. Run `scripts/prepare-review-handoff.ps1` to create `docs/work/review-prompt.txt`. The default handoff contains the complete commit diff. If `-DiffPaths` is used, the script compares the filtered paths with the complete changed-file list and rejects omitted files unless `-AllowPartialDiff` is explicitly supplied. An allowed partial handoff declares `REVIEW_SCOPE: SCOPED` and lists every omitted changed file; it is never presented as a complete review. On Windows, use this explicit partial mode only when transport limits require it, and include the integration files plus the omitted bundled skill files in the review scope note.
+After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. Run the launcher next to this skill, `skills/spec-loop-web-tdd/scripts/prepare-review-handoff.ps1`, to create `docs/work/review-prompt.txt`; do not resolve `scripts/prepare-review-handoff.ps1` relative to the project working directory. The launcher resolves the complete plugin root from its own skill-relative location, so it works when the plugin is installed under Codex or Antigravity. The default handoff contains the complete commit diff. If `-DiffPaths` is used, the script compares the filtered paths with the complete changed-file list and rejects omitted files unless `-AllowPartialDiff` is explicitly supplied. An allowed partial handoff declares `REVIEW_SCOPE: SCOPED` and lists every omitted changed file; it is never presented as a complete review. On Windows, use this explicit partial mode only when transport limits require it, and include the integration files plus the omitted bundled skill files in the review scope note.
 
 For the No-Git route, require both `BeforeSnapshot` and `AfterSnapshot`. The review handoff embeds bounded text contents, pairs files by relative path, and explicitly marks added, deleted, binary, and size-limited files; a manifest alone is not review evidence.
 
 - With an accessible GitHub snapshot, use `gpt-repo review --base <BASE_SHA> --commit <TARGET_SHA> --spec <SPEC>`.
 - Otherwise, send the self-contained review prompt to `gpt-web`.
 
-For the `gpt-web` route, run `scripts/run-web-gpt.ps1` with `-ValidateReviewContract` so malformed attestation or findings output is rejected before archival. The GitHub `gpt-repo` route performs repository/commit/SPEC attestation in its own runner; preserve and inspect its raw response artifact as well.
+For the `gpt-web` route, run the launcher next to this skill, `skills/spec-loop-web-tdd/scripts/run-web-gpt.ps1`, with `-ValidateReviewContract` so malformed attestation or findings output is rejected before archival. The GitHub `gpt-repo` route performs repository/commit/SPEC attestation in its own runner; preserve and inspect its raw response artifact as well.
 
 Save the raw response to `docs/work/review-<target>.md`. The review must cover SPEC compliance, PLAN consistency, Local README compliance, regression and edge cases, test adequacy, documentation sync, and history-worthy findings.
 
@@ -106,4 +106,4 @@ Before declaring done, verify the relevant and full test suites, confirm that ev
 
 ## Runtime dependency
 
-The bundled `gpt-web` and `gpt-repo` instructions describe the AgentChat runtime. The plugin does not vendor `.env`, credentials, or `node_modules`. Set `AGENTCHAT_ROOT` to the existing AgentChat checkout, or pass `-AgentChatRoot` to the included scripts. The default workspace fallback is `E:\ai-toolkit\skills\AgentChat`.
+The bundled `gpt-web` and `gpt-repo` instructions describe the AgentChat runtime. The plugin does not vendor `.env`, credentials, or `node_modules`. Set `AGENTCHAT_ROOT` to the existing AgentChat checkout, or pass `-AgentChatRoot` to the launcher next to this skill. The default workspace fallback is `E:\ai-toolkit\skills\AgentChat`. A skill-only copy is instruction-only: handoff and runner stages require the complete plugin package (or an explicitly accessible checkout containing its `scripts/` directory).

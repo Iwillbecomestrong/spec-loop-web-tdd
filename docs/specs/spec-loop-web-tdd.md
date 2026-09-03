@@ -2,7 +2,7 @@
 
 ## Goal
 
-Package a reusable Codex plugin that runs a SPEC-first development workflow with requirement clarification, ChatGPT Web planning and review, and subagent-driven TDD.
+Package a reusable Codex and Google Antigravity plugin that runs a SPEC-first development workflow with requirement clarification, ChatGPT Web planning and review, and subagent-driven TDD.
 
 ## Required workflow
 
@@ -22,6 +22,13 @@ Package a reusable Codex plugin that runs a SPEC-first development workflow with
 - GitHub remote with an accessible committed snapshot and GitHub Connector: use `gpt-repo` Plan/Review with explicit repository, base, target, and SPEC.
 - Local Git without a usable GitHub snapshot: generate a self-contained text handoff containing the local diff and use `gpt-web`.
 - No Git: generate a self-contained text handoff containing bounded before/after snapshots and relevant file contents and use `gpt-web`.
+
+## Host and installation compatibility
+
+- Codex uses `.codex-plugin/plugin.json`; Antigravity uses the package-root `plugin.json`.
+- A full plugin installation exposes the shared `skills/` and `scripts/` directories. The main workflow skill's launcher scripts resolve the package root from their own skill-relative location, so handoff generation does not depend on the project working directory.
+- Copying only `skills/` is instruction-only. Script-dependent stages require the complete plugin package or an explicitly accessible checkout containing `scripts/`.
+- Host compatibility is framework-agnostic; repository-local README and test commands remain authoritative.
 
 ## Runtime boundary
 
@@ -45,4 +52,5 @@ The current `gpt-web` CLI sends text through stdin; arbitrary local Markdown, te
 - The Web GPT runner saves stdout separately from stderr.
 - Regression tests cover complete, rejected partial, explicitly allowed partial, and evidence-free review handoffs.
 - The package contains the Spec-Loop, GPT Repo, GPT Web, subagent TDD, and test-driven development skills.
+- Both Codex and Antigravity manifests validate, the Antigravity installation documentation distinguishes full-plugin and skill-only modes, and launcher smoke tests work from an unrelated project working directory.
 - No credentials or runtime dependency directories are included.
