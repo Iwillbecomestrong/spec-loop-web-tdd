@@ -41,3 +41,7 @@ These launchers resolve the package root from their own location and do not depe
 The Web GPT stages are host-independent instructions, but their execution still requires the existing AgentChat runtime, Node.js, PowerShell 7, a logged-in Chrome CDP session, and the GitHub Connector for `gpt-repo`. Configure `AGENTCHAT_ROOT` when the default `E:\ai-toolkit\skills\AgentChat` path is not used. Installing this plugin into Antigravity does not provide ChatGPT access or credentials.
 
 The workflow is framework-agnostic: each project supplies its own build and test commands through its repository truth and local README rules.
+
+## Optional skills
+
+At task start, the workflow checks Antigravity's available skill/plugin catalog. If `superpowers:brainstorming`, `superpowers:systematic-debugging`, or `grill-me` is already available, it uses that exact skill and reports the catalog-provided ID and source connection; it does not install a duplicate plugin. The bundled entries are fallbacks and can be used independently, or composed as `brainstorming -> grill-me` when both exploration and requirement clarification are needed.

@@ -7,6 +7,22 @@ description: Run a SPEC-first development workflow with requirement grilling, Ch
 
 Use this skill when the user asks to build, change, refactor, or rigorously review code and wants the Spec-Loop workflow.
 
+## Capability discovery and optional skill routing
+
+Before invoking an optional capability, inspect the host-provided available skills/plugin catalog in the current context. Match exact IDs, preferring `superpowers:brainstorming`, `superpowers:systematic-debugging`, and an existing `grill-me` skill. If a match exists, invoke that skill directly, do not install this plugin or another duplicate, and report the exact skill ID plus the source path or connection shown by the catalog. If no match exists, use this plugin's same-named fallback entry skill and label it as the bundled fallback.
+
+Choose capabilities by observable task condition:
+
+| Condition | Route |
+|---|---|
+| New idea, design, or behavior needs exploration | `brainstorming` |
+| Requirements or acceptance criteria remain materially unclear | `grill-me` |
+| Exploration produced alternatives but requirements are still incomplete | `brainstorming -> grill-me` |
+| Bug, test/build failure, integration failure, or unexpected behavior | `systematic-debugging` |
+| Clear, small request with no material ambiguity or failure | Skip optional capabilities |
+
+Optional capabilities are composable but not mandatory as a bundle. `systematic-debugging` is a diagnosis route, not a clarification route. A selected external skill takes precedence over the bundled fallback; never install a plugin merely because a usable matching skill is already available.
+
 ## Non-negotiable ordering
 
 The implementation plan must never be requested before a usable SPEC exists.

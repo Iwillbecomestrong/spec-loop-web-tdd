@@ -1,6 +1,10 @@
 # Grill-Me integration
 
-This plugin includes a built-in Grill-Me-compatible clarification phase because the source workspace currently does not provide a separate `grill-me` skill.
+This plugin includes a built-in Grill-Me-compatible clarification skill because a host may not provide a separate `grill-me` skill.
+
+## Discovery and reuse
+
+At the start of a task, inspect the host's available skills/plugin catalog. If an exact `grill-me` capability is present, use it directly, do not install this plugin as a duplicate, and report the catalog's skill ID and source path/connection to the user. Use this bundled entry only when no matching host capability is available.
 
 The phase is required before planning:
 
@@ -14,7 +18,7 @@ The phase is required before planning:
 8. Obtain confirmation for a new or materially changed SPEC.
 9. Only then create `docs/work/plan-prompt.txt` and call ChatGPT Web for the technical plan.
 
-If a real Grill-Me skill is later supplied, it may replace this compatibility phase. It must still produce the same handoff contract: confirmed requirements, scope classification, SPEC path, open questions, and acceptance criteria.
+If a real Grill-Me skill is supplied, it may replace this compatibility phase. It must still produce the same handoff contract: confirmed requirements, scope classification, SPEC path, open questions, and acceptance criteria.
 
 ## Suggested clarification record
 

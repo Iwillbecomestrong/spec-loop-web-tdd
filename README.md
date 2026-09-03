@@ -18,6 +18,10 @@ The plugin packages workflow skills and handoff scripts, but not the AgentChat r
 
 The Web GPT CLI currently sends text through stdin; arbitrary local text files are not uploaded as ChatGPT attachments.
 
+## Optional skill routing
+
+The workflow can use `brainstorming`, `grill-me`, and `systematic-debugging` independently or in the documented `brainstorming -> grill-me` combination. At task start it checks the host's available skill catalog. Existing `superpowers:brainstorming`, `superpowers:systematic-debugging`, or `grill-me` skills are reused directly, with their catalog ID and source connection reported to the user; no duplicate plugin installation is performed. The bundled same-named entries are fallbacks only.
+
 ## Antigravity
 
 The package also includes a root-level `plugin.json` for Google Antigravity while retaining `.codex-plugin/plugin.json` for Codex. See [docs/antigravity.md](docs/antigravity.md) for plugin and skill-only installation. The same workflow can be used across projects and programming frameworks; Web GPT stages still require the separately configured AgentChat/Chrome/GitHub runtime.

@@ -30,6 +30,13 @@ Package a reusable Codex and Google Antigravity plugin that runs a SPEC-first de
 - Copying only `skills/` is instruction-only. Script-dependent stages require the complete plugin package or an explicitly accessible checkout containing `scripts/`.
 - Host compatibility is framework-agnostic; repository-local README and test commands remain authoritative.
 
+## Optional capability routing
+
+- The workflow exposes independent `brainstorming`, `grill-me`, and `systematic-debugging` entries.
+- `brainstorming` is selected for design exploration; `grill-me` is selected for unresolved requirements; they may be composed as `brainstorming -> grill-me`.
+- `systematic-debugging` is selected for bugs, test/build failures, integration failures, and unexpected behavior.
+- Before using a bundled entry, the host catalog is checked for `superpowers:brainstorming`, `superpowers:systematic-debugging`, or `grill-me`. An available host skill is reused directly, with its exact ID and source connection reported; duplicate plugin installation is not requested.
+
 ## Runtime boundary
 
 The plugin must not vendor AgentChat credentials, `.env` files, or `node_modules`. It may call an existing AgentChat runtime through `AGENTCHAT_ROOT` or an explicit script parameter. The current workspace fallback is `E:\ai-toolkit\skills\AgentChat`.
@@ -53,4 +60,5 @@ The current `gpt-web` CLI sends text through stdin; arbitrary local Markdown, te
 - Regression tests cover complete, rejected partial, explicitly allowed partial, and evidence-free review handoffs.
 - The package contains the Spec-Loop, GPT Repo, GPT Web, subagent TDD, and test-driven development skills.
 - Both Codex and Antigravity manifests validate, the Antigravity installation documentation distinguishes full-plugin and skill-only modes, and launcher smoke tests work from an unrelated project working directory.
+- Optional capability routing tests cover independent use, the `brainstorming -> grill-me` composition, systematic-debugging selection, and reuse of an already available host skill without installation.
 - No credentials or runtime dependency directories are included.
