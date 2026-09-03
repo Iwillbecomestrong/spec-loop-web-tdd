@@ -1,0 +1,4 @@
+{
+  "name": "spec-loop-web-tdd",
+  "description": "A SPEC-first workflow with ChatGPT Web planning and review, repository-mode handoffs, and subagent-driven TDD."
+}
