@@ -64,8 +64,6 @@ Select the Web GPT route:
 - Local Git without a usable remote: send the self-contained prompt through the bundled `gpt-web` skill.
 - No Git: send the self-contained prompt through `gpt-web`; include a bounded file manifest and relevant file contents.
 
-For the No-Git route, require both `BeforeSnapshot` and `AfterSnapshot`. The review handoff embeds bounded text contents, pairs files by relative path, and explicitly marks added, deleted, binary, and size-limited files; a manifest alone is not review evidence.
-
 The `gpt-web` CLI receives text through stdin. It does not attach arbitrary local Markdown, text, or PDF files to the ChatGPT conversation. Never claim that a file was uploaded when only its text was piped.
 
 Save the raw Web GPT result to `docs/work/plan-raw.md`. Locally review it against the SPEC, local READMEs, current code, and HISTORY before writing `docs/plans/<feature>.md` or updating the project's PLAN.
@@ -90,6 +88,8 @@ Run a task-scoped review after each task. A task review is useful but does not r
 ## 4. Web GPT Review and convergence
 
 After implementation, record `BASE_SHA` and `TARGET_SHA` when Git is available. Run `scripts/prepare-review-handoff.ps1` to create `docs/work/review-prompt.txt`. The default handoff contains the complete commit diff. If `-DiffPaths` is used, the script compares the filtered paths with the complete changed-file list and rejects omitted files unless `-AllowPartialDiff` is explicitly supplied. An allowed partial handoff declares `REVIEW_SCOPE: SCOPED` and lists every omitted changed file; it is never presented as a complete review. On Windows, use this explicit partial mode only when transport limits require it, and include the integration files plus the omitted bundled skill files in the review scope note.
+
+For the No-Git route, require both `BeforeSnapshot` and `AfterSnapshot`. The review handoff embeds bounded text contents, pairs files by relative path, and explicitly marks added, deleted, binary, and size-limited files; a manifest alone is not review evidence.
 
 - With an accessible GitHub snapshot, use `gpt-repo review --base <BASE_SHA> --commit <TARGET_SHA> --spec <SPEC>`.
 - Otherwise, send the self-contained review prompt to `gpt-web`.

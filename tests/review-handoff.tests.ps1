@@ -223,6 +223,8 @@ try {
 
     $runnerText = Get-Content -Raw -LiteralPath $runnerScript
     Assert-True ($runnerText.Contains('[guid]::NewGuid()')) 'contract-check files must use unique names.'
+    $skillText = Get-Content -Raw -LiteralPath (Join-Path $pluginRoot 'skills/spec-loop-web-tdd/SKILL.md')
+    Assert-True ($skillText.IndexOf('For the No-Git route') -gt $skillText.IndexOf('## 4. Web GPT Review and convergence')) 'No-Git snapshot requirements must be documented in the review stage.'
 
     New-Item -ItemType Directory -Force -Path (Join-Path $noGitRoot 'docs/specs') | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $noGitRoot 'before') | Out-Null
