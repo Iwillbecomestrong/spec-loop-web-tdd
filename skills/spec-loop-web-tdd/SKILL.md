@@ -47,7 +47,7 @@ The SPEC must state the goal, non-goals, behavior, interfaces, constraints, erro
 
 ## 2. Web GPT Plan handoff
 
-After the SPEC gate passes, run `scripts/prepare-plan-handoff.ps1`. It creates a self-contained `docs/work/plan-prompt.txt` containing:
+After the SPEC gate passes, run the launcher next to this skill, `skills/spec-loop-web-tdd/scripts/prepare-plan-handoff.ps1`; do not resolve `scripts/prepare-plan-handoff.ps1` relative to the project working directory. It creates a self-contained `docs/work/plan-prompt.txt` containing:
 
 - the user's confirmed request;
 - the SPEC;

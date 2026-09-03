@@ -14,5 +14,5 @@ $target = Join-Path $pluginRoot 'scripts\prepare-plan-handoff.ps1'
 if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
     throw "Spec-loop plugin scripts are unavailable at $target. Install the complete plugin package, not only its skills."
 }
-& pwsh -NoProfile -ExecutionPolicy Bypass -File $target @PSBoundParameters
+& $target @PSBoundParameters
 exit $LASTEXITCODE

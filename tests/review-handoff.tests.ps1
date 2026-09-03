@@ -233,6 +233,12 @@ try {
     Assert-True (Test-Path -LiteralPath $webLauncherScript -PathType Leaf) 'the main skill must ship a Web GPT launcher.'
     $launcherText = Get-Content -Raw -LiteralPath $reviewLauncherScript
     Assert-True ($launcherText.Contains('..\..\..')) 'skill launchers must resolve the package root from their own location.'
+    foreach ($launcher in @($planLauncherScript, $reviewLauncherScript, $webLauncherScript)) {
+        $text = Get-Content -Raw -LiteralPath $launcher
+        Assert-True ($text.Contains('& $target @PSBoundParameters')) 'skill launchers must preserve array parameters without pwsh -File serialization.'
+        Assert-True (-not $text.Contains('-File $target')) 'skill launchers must not invoke canonical scripts through a second pwsh process.'
+    }
+    Assert-True ($skillText.Contains('do not resolve `scripts/prepare-plan-handoff.ps1` relative to the project working directory')) 'the Plan stage must document stable launcher resolution.'
     Assert-True ($skillText.Contains('do not resolve `scripts/prepare-review-handoff.ps1` relative to the project working directory')) 'the main skill must document stable launcher resolution.'
     $reviewSectionIndex = $skillText.IndexOf('## 4. Web GPT Review and convergence')
     $noGitRequirementIndex = $skillText.IndexOf('For the No-Git route')
@@ -291,9 +297,15 @@ try {
     Assert-True ($boundedText.Contains('OMITTED') -and $boundedText.Contains('size limit')) 'No-Git handoffs must mark size-limited omissions.'
 
     $launcherOutput = Join-Path $tempRoot 'launcher-review.txt'
+    $launcherPlanOutput = Join-Path $tempRoot 'launcher-plan.txt'
     Push-Location ([IO.Path]::GetTempPath())
     try {
-        & pwsh -NoProfile -ExecutionPolicy Bypass -File $reviewLauncherScript -SpecPath 'docs/specs/test.md' -ProjectPath $tempRoot -BaseCommit $base -TargetCommit $target -OutputPath $launcherOutput 2>$null | Out-Null
+        & $planLauncherScript -SpecPath 'docs/specs/test.md' -ProjectPath $tempRoot -UserRequest 'launcher smoke test' -ContextFiles @('tracked.txt', 'second.txt') -OutputPath $launcherPlanOutput 2>$null | Out-Null
+        Assert-True ($LASTEXITCODE -eq 0) 'skill-relative plan launcher must work outside the plugin and project directories.'
+        $launcherPlanText = Get-Content -Raw -LiteralPath $launcherPlanOutput
+        Assert-True ($launcherPlanText.Contains('tracked.txt') -and $launcherPlanText.Contains('second.txt')) 'plan launcher must preserve multiple ContextFiles.'
+
+        & $reviewLauncherScript -SpecPath 'docs/specs/test.md' -ProjectPath $tempRoot -BaseCommit $base -TargetCommit $target -DiffPaths @('tracked.txt', 'second.txt') -OutputPath $launcherOutput 2>$null | Out-Null
         Assert-True ($LASTEXITCODE -eq 0) 'skill-relative review launcher must work outside the plugin and project directories.'
         Assert-True ((Get-Content -Raw -LiteralPath $launcherOutput).Contains('REVIEW_SCOPE: COMPLETE')) 'skill-relative review launcher must invoke the canonical handoff script.'
     } finally {
